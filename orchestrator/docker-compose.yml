@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: jarvis
+      POSTGRES_DB: jarvis
+    volumes:
+      - jarvis_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis"]
+      interval: 5s
+      retries: 10
+    # Sin "ports": la BD no queda expuesta fuera de Docker.
+
+  bot:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://jarvis:jarvis@db:5432/jarvis
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    # Si Personal Hub corre en tu máquina (fuera de Docker), usa
+    # http://host.docker.internal:8000 como URL en `jarvis set-hub`.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  jarvis_pg:
